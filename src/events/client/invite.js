@@ -6,7 +6,11 @@ module.exports = (client) => {
                 // Verifica si el mensaje contiene la palabra 'invitacion'
                 if (message.content.toLowerCase().includes('invitacion')) {
                     try {
-                        const inviteLink = "https://discord.com/oauth2/authorize?client_id=1292066121679372290&permissions=8&integration_type=0&scope=bot";
+                        const dotenv = require('dotenv');
+                        dotenv.config({path: './config/.env'});
+                        const clientId = process.env.clientID
+
+                        const inviteLink = `https://discord.com/oauth2/authorize?client_id=${clientId}&permissions=8&integration_type=0&scope=bot`;
                         return message.channel.send(`Aquí tienes el enlace de invitación del bot: ${inviteLink}`);
                     } catch (error) {
                         console.error('Error al generar la invitación: ', error);
