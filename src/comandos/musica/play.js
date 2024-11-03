@@ -19,7 +19,7 @@ module.exports = {
             const MAX_QUEUE_SIZE = 1000;
             const player = useMainPlayer();
             const userVoiceChannel = interaction.member.voice.channel;
-            const queue = useQueue(interaction.guildId);;
+            const queue = useQueue(interaction.guildId);
             const { user: author } = interaction;
             const userMention = `<@${author.id}>`;
 
