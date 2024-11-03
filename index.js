@@ -74,6 +74,7 @@ client.creadorcommands = new Map();
 client.settingscommands = new Map();
 client.helpcommands = new Map();
 client.triggerscommands = new Map();
+client.radiocommands = new Map();
 
 let commands = [];
 loadCommands(client, commands);

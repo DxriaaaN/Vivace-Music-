@@ -7,7 +7,8 @@ module.exports = (client) => {
                         client.settingscommands.get(interaction.commandName) ||
                         client.helpcommands.get(interaction.commandName) ||
                         client.triggerscommands.get(interaction.commandName) ||
-                        client.creadorcommands.get(interaction.commandName);
+                        client.creadorcommands.get(interaction.commandName) ||
+                        client.radiocommands.get(interaction.commandName);
 
         if (!command) {
             await interaction.reply({ content: "Lo siento, no es un comando válido", ephemeral: true });

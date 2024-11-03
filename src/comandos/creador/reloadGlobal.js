@@ -25,6 +25,7 @@ module.exports = {
                 { name: 'settings', collection: interaction.client.settingscommands },
                 { name: 'help', collection: interaction.client.helpcommands },
                 { name: 'triggers', collection: interaction.client.triggerscommands},
+                { name: 'radio', collection: interaction.client.radiocommands},
             ];
             //Para cada Carpeta X
             for (const folder of commandFolders) {

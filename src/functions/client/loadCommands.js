@@ -3,7 +3,7 @@ const path = require('node:path');
 
 const loadCommands = (client, commands) => {
     try {
-    const commandFolders = ['musica', 'creador', 'settings', 'help', 'triggers']; 
+    const commandFolders = ['musica', 'creador', 'settings', 'help', 'triggers', 'radio']; 
     
     commandFolders.forEach(folder => {
         const commandFolderPath = path.join(__dirname, '../../comandos', folder);
