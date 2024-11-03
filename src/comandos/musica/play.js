@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { EmbedBuilder } = require('discord.js');
-const { QueryType, useMainPlayer, useQueue } = require('discord-player');
-const { Query } = require('mongoose');
+const { Track, QueryType, useMainPlayer, useQueue } = require('discord-player');
+const ytsr = require('youtube-sr').default;
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -19,7 +19,7 @@ module.exports = {
             const MAX_QUEUE_SIZE = 1000;
             const player = useMainPlayer();
             const userVoiceChannel = interaction.member.voice.channel;
-            const queue = useQueue(interaction.guildId);
+            const queue = useQueue(interaction.guildId);;
             const { user: author } = interaction;
             const userMention = `<@${author.id}>`;
 
@@ -27,9 +27,9 @@ module.exports = {
             if (!userVoiceChannel) {
                 return interaction.editReply({
                     embeds: [new EmbedBuilder()
-                        .setColor(parseInt('0xd11775', 16))
+                        .setColor(parseInt('313850', 16))
                         .setDescription('Necesitas estar en un canal de voz para usar este comando :D')
-                        .setFooter({ text: 'LSA Technology\'s' })
+                        .setFooter({ text: client.user.username, iconURL: `${client.user.displayAvatarURL()}` })
                         .setTimestamp()]
                 });
             }
@@ -41,7 +41,7 @@ module.exports = {
             if (!song) {
                 await interaction.editReply({
                     embeds: [new EmbedBuilder()
-                        .setColor(parseInt('0xd11775', 16))
+                        .setColor(parseInt('313850', 16))
                         .setDescription(`El enlace ingresado no es válido, por favor intenta de nuevo ${userMention}`)
                         .setFooter({ text: client.user.username, iconURL: `${client.user.displayAvatarURL()}` })
                         .setTimestamp()]
@@ -68,7 +68,7 @@ module.exports = {
                 } else {
                     return interaction.editReply({
                         embeds: [new EmbedBuilder()
-                            .setColor(parseInt('0xd11775', 16))
+                            .setColor(parseInt('313850', 16))
                             .setDescription(`${userMention} Ya estoy reproduciendo música en otro canal. Únete a mi canal de voz o espera a que termine.`)
                             .setFooter({ text: client.user.username, iconURL: `${client.user.displayAvatarURL()}` })
                             .setTimestamp()]
@@ -78,7 +78,7 @@ module.exports = {
 
 
             let embed = new EmbedBuilder()
-                .setColor(parseInt('0xd11775', 16))
+                .setColor(parseInt('313850', 16))
                 .setDescription('Estoy buscando lo que pediste >.<')
                 .setTimestamp()
                 .setFooter({ text: client.user.username, iconURL: `${client.user.displayAvatarURL()}` });
@@ -89,6 +89,9 @@ module.exports = {
                 //DEFINICION GLOBAL
                 // Definir la expresión regular para enlaces
                 const linkRegex = /^(http|https):\/\/[^ "]+$/;
+
+                //YoutubeMix
+                const youtubeMixRegex = /^https?:\/\/(www\.)?youtube\.com\/watch\?v=[^&]+&list=RD[^&]+(&|$)/;
 
                 //SoundCloud
                 const soundcloudTrackRegex = /^https?:\/\/(www\.)?soundcloud\.com\/[^\/]+\/[^\/]+(?:\?.*)?$/i;
@@ -115,7 +118,7 @@ module.exports = {
                                 .setColor(parseInt('313850', 16))
                                 .setDescription('No he podido encontrar resultados 😔')
                                 .setTimestamp()
-                                .setFooter({ text: 'LSA Technology\'s' })
+                                .setFooter({ text: client.user.username, iconURL: `${client.user.displayAvatarURL()}` })
                             ]
                         });
                     }
@@ -157,11 +160,15 @@ module.exports = {
                     // Si es un enlace, determinar el 'searchEngine' POR DEFAULT.
                     let searchEngine = QueryType.AUTO;
 
+
                     //Soundcloud Music
+                    try {
                     if (soundcloudTrackRegex.test(song)) {
                         searchEngine = QueryType.SOUNDCLOUD_TRACK;
                     } else if (soundcloudPlaylistRegex.test(song)) {
                         searchEngine = QueryType.SOUNDCLOUD_PLAYLIST;
+                    } }catch(error){
+                        return message.channel.send('Reproduce/Agrega una cancion antes de iniciar la reproduccion de Soundcloud.');
                     }
 
                     //Apple Music
@@ -171,6 +178,51 @@ module.exports = {
                         searchEngine = QueryType.APPLE_MUSIC_ALBUM;
                     } else if (applePlaylist.test(song)) {
                         searchEngine = QueryType.APPLE_MUSIC_PLAYLIST;
+                    }
+
+                    //Youtube Mix
+                    if (youtubeMixRegex.test(song)) {
+
+                        const playlist = await ytsr.getPlaylist(song);
+                        //console.log(playlist)
+                        if (!playlist) {
+                            embed = new EmbedBuilder()
+                                .setColor(parseInt('313850', 16))
+                                .setDescription('No se pudo encontrar la lista de Mix en YouTube')
+                                .setFooter({ text: client.user.username, iconURL: client.user.displayAvatarURL() })
+                                .setTimestamp();
+                            await msg.edit({ embeds: [embed] });
+                            return;
+                        }
+
+                        let trackCount = 0
+
+                        // Crear y agregar cada pista individualmente
+                        try {
+                            for (const video of playlist.videos) {
+                                const track = new Track(player, {
+                                    id: video.id,
+                                    title: video.title,
+                                    duration: video.durationFormatted,
+                                    thumbnail: video.thumbnail.url,
+                                    author: video.channel.name,
+                                    requestedBy: interaction.user,
+                                    source: 'youtube',
+                                    url: `https://www.youtube.com/watch?v=${video.id}`
+                                });
+                                // Reproducir la canción o agregarla a la cola
+                                queue.addTrack(track);
+                                trackCount++;
+                            }
+                        } catch (error) {
+                            return message.channel.send('Reproduce/Agrega una cancion antes de iniciar un mix.');
+                        }
+                        embed = new EmbedBuilder()
+                            .setColor(parseInt('313850', 16))
+                            .setDescription(`Se añadieron ${trackCount} canciones del Mix de YouTube a la cola.`)
+                            .setFooter({ text: client.user.username, iconURL: client.user.displayAvatarURL() })
+                            .setTimestamp();
+                        await msg.edit({ embeds: [embed] });
                     }
 
                     // Realizar la búsqueda con el 'searchEngine' DEFAULT EN CASO DE NO CUMPLIRSE LOS ANTERIORES.
@@ -201,7 +253,6 @@ module.exports = {
                         ]
                     });
                 }
-
                 // Reproducir la canción o agregarla a la cola
                 const res = await player.play(interaction.member.voice.channel.id, research, {
                     nodeOptions: {
@@ -221,7 +272,9 @@ module.exports = {
                         leaveOnEmptyCooldown: 200000,
                         skipOnNoStream: true,
                     },
-                });
+
+                })
+
                 //Ver cancion actual en consola
                 console.log(`Reproduciendo [${res.track.title}] en el canal [${interaction.member.voice.channel.name}]`);
 
