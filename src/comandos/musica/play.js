@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, VoiceChannel } = require('discord.js');
 const { Track, QueryType, useMainPlayer, useQueue } = require('discord-player');
 const ytsr = require('youtube-sr').default;
 
@@ -21,6 +21,7 @@ module.exports = {
             const userVoiceChannel = interaction.member.voice.channel;
             const queue = useQueue(interaction.guildId);
             const { user: author } = interaction;
+            const guildId = interaction.guildId
             const userMention = `<@${author.id}>`;
 
             // Verificar que el usuario esté en un canal de voz
@@ -156,6 +157,7 @@ module.exports = {
                         research.tracks = [choices[0]];
                     }
                 } else { //MANEJADOR DE ENLACES UNICAMENTE.
+                    try{
 
                     // Si es un enlace, determinar el 'searchEngine' POR DEFAULT.
                     let searchEngine = QueryType.AUTO;
@@ -163,11 +165,12 @@ module.exports = {
 
                     //Soundcloud Music
                     try {
-                    if (soundcloudTrackRegex.test(song)) {
-                        searchEngine = QueryType.SOUNDCLOUD_TRACK;
-                    } else if (soundcloudPlaylistRegex.test(song)) {
-                        searchEngine = QueryType.SOUNDCLOUD_PLAYLIST;
-                    } }catch(error){
+                        if (soundcloudTrackRegex.test(song)) {
+                            searchEngine = QueryType.SOUNDCLOUD_TRACK;
+                        } else if (soundcloudPlaylistRegex.test(song)) {
+                            searchEngine = QueryType.SOUNDCLOUD_PLAYLIST;
+                        }
+                    } catch (error) {
                         return message.channel.send('Reproduce/Agrega una cancion antes de iniciar la reproduccion de Soundcloud.');
                     }
 
@@ -198,7 +201,6 @@ module.exports = {
                         let trackCount = 0
 
                         // Crear y agregar cada pista individualmente
-                        try {
                             for (const video of playlist.videos) {
                                 const track = new Track(player, {
                                     id: video.id,
@@ -211,12 +213,17 @@ module.exports = {
                                     url: `https://www.youtube.com/watch?v=${video.id}`
                                 });
                                 // Reproducir la canción o agregarla a la cola
+                                if (!queue || !queue.isPlaying() || queue.tracks.size === 0){
+                                const queue = player.queues.create(guildId)
+                                await queue.connect(userVoiceChannel)
                                 queue.addTrack(track);
                                 trackCount++;
+                                } else {
+                                    queue.addTrack(track);
+                                    trackCount++;
+                                }
                             }
-                        } catch (error) {
-                            return message.channel.send('Reproduce/Agrega una cancion antes de iniciar un mix.');
-                        }
+
                         embed = new EmbedBuilder()
                             .setColor(parseInt('313850', 16))
                             .setDescription(`Se añadieron ${trackCount} canciones del Mix de YouTube a la cola.`)
@@ -240,7 +247,10 @@ module.exports = {
                         await msg.edit({ embeds: [embed] });
                         return;
                     }
+                } catch (error){
+                    console.log(error);
                 }
+            }
 
                 // Verificar Tamaño de la Cola
                 if (research?.tracks?.length + (queue?.size ?? 0) > MAX_QUEUE_SIZE) {
